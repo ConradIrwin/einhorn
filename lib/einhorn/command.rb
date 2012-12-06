@@ -98,6 +98,25 @@ module Einhorn
       Einhorn::Event.break_loop
     end
 
+    def self.gracefully_kill_all(children=nil, signal=nil)
+      children ||= Einhorn::WorkerPool.workers
+      signal ||= "USR2"
+
+      if kill_interval = Einhorn::State.config[:kill_interval]
+        Einhorn::Event::Timer.open(kill_interval) do
+          still_alive = children.select{ |pid| Einhorn::State.children[pid] }
+
+          if still_alive.length > 0
+            Einhorn.log_info("Forcefully KILLing #{still_alive.length} old workers after #{kill_interval} seconds.")
+
+            signal_all("KILL", still_alive)
+          end
+        end
+      end
+
+      signal_all(signal, children)
+    end
+
     def self.signal_all(signal, children=nil, record=true)
       children ||= Einhorn::WorkerPool.workers
 
@@ -309,13 +328,13 @@ module Einhorn
       old_workers = Einhorn::WorkerPool.old_workers
       if !Einhorn::State.upgrading && old_workers.length > 0
         Einhorn.log_info("Killing off #{old_workers.length} old workers.")
-        signal_all("USR2", old_workers)
+        gracefully_kill_all(old_workers)
       end
 
       if acked > target
         excess = Einhorn::WorkerPool.acked_unsignaled_modern_workers[0...(acked-target)]
         Einhorn.log_info("Have too many workers at the current version, so killing off #{excess.length} of them.")
-        signal_all("USR2", excess)
+        gracefully_kill_all(excess)
       end
     end
 

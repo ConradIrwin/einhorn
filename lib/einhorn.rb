@@ -33,7 +33,7 @@ module Einhorn
     def self.default_state
       {
         :children => {},
-        :config => {:number => 1, :backlog => 100, :seconds => 1},
+        :config => {:number => 1, :backlog => 100, :seconds => 1, :kill_interval => nil},
         :versions => {},
         :version => 0,
         :sockets => {},

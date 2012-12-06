@@ -105,6 +105,14 @@ Once the new workers have been spawned, Einhorn will send each old
 worker a SIGUSR2. SIGUSR2 should be interpreted as a request for a
 graceful shutdown.
 
+#### Forceful kills
+
+If you send a process a SIGUSR2 and it does not die, Einhorn can
+be configured to send it a SIGKILL to ensure that it exits. This
+behaviour is disabled by default and is enabled by passing `-x N`,
+where N is the number of seconds to wait for the process to exit
+cleanly before sending SIGKILL.
+
 ### ACKs
 
 After Einhorn spawns a worker, it will only consider the worker up
@@ -263,6 +271,10 @@ if true # $0 == __FILE__
 
     opts.on('-s', '--seconds N', 'Number of seconds to wait until respawning') do |b|
       Einhorn::State.config[:seconds] = s.to_i
+    end
+
+    opts.on('-x', '--kill-after N', "Number of seconds before sending KILL to children that don't exit cleanly") do |x|
+      Einhorn::State.config[:kill_interval] = x.to_i
     end
 
     opts.on('-v', '--verbose', 'Make output verbose (can be reconfigured on the fly)') do

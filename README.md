@@ -129,6 +129,14 @@ Once the new workers have been spawned, Einhorn will send each old
 worker a SIGUSR2. SIGUSR2 should be interpreted as a request for a
 graceful shutdown.
 
+#### Forceful kills
+
+If you send a process a SIGUSR2 and it does not die, Einhorn can
+be configured to send it a SIGKILL to ensure that it exits. This
+behaviour is disabled by default and is enabled by passing `-x N`,
+where N is the number of seconds to wait for the process to exit
+cleanly before sending SIGKILL.
+
 ### ACKs
 
 After Einhorn spawns a worker, it will only consider the worker up
@@ -205,6 +213,7 @@ pass `-c <name>`.
     -p, --preload PATH               Load this code into memory, and fork but do not exec upon spawn. Must define an "einhorn_main" method
     -q, --quiet                      Make output quiet (can be reconfigured on the fly)
     -s, --seconds N                  Number of seconds to wait until respawning
+    -x, --kill-after N               Number of seconds before sending KILL to children that don't exit cleanly
     -v, --verbose                    Make output verbose (can be reconfigured on the fly)
         --with-state-fd STATE        [Internal option] With file descriptor containing state
         --version                    Show version

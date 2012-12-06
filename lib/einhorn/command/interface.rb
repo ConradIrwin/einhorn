@@ -148,11 +148,11 @@ module Einhorn::Command
     ## Signals
     def self.install_handlers
       Signal.trap("INT") do
-        Einhorn::Command.signal_all("USR2", Einhorn::WorkerPool.workers)
+        Einhorn::Command.gracefully_kill_all(Einhorn::WorkerPool.workers)
         Einhorn::State.respawn = false
       end
       Signal.trap("TERM") do
-        Einhorn::Command.signal_all("TERM", Einhorn::WorkerPool.workers)
+        Einhorn::Command.gracefully_kill_all(Einhorn::WorkerPool.workers, "TERM")
         Einhorn::State.respawn = false
       end
       # Note that quit is a bit different, in that it will actually
@@ -166,12 +166,12 @@ module Einhorn::Command
       Signal.trap("ALRM") {Einhorn::Command.full_upgrade}
       Signal.trap("CHLD") {Einhorn::Event.break_loop}
       Signal.trap("USR2") do
-        Einhorn::Command.signal_all("USR2", Einhorn::WorkerPool.workers)
+        Einhorn::Command.gracefully_kill_all(Einhorn::WorkerPool.workers)
         Einhorn::State.respawn = false
       end
       at_exit do
         if Einhorn::State.kill_children_on_exit && Einhorn::TransientState.whatami == :master
-          Einhorn::Command.signal_all("USR2", Einhorn::WorkerPool.workers)
+          Einhorn::Command.gracefully_kill_all(Einhorn::WorkerPool.workers)
           Einhorn::State.respawn = false
         end
       end
@@ -353,9 +353,7 @@ EOF
         next message
       end
 
-      signal = args[0] || "USR2"
-
-      response = Einhorn::Command.signal_all(signal, Einhorn::WorkerPool.workers)
+      response = Einhorn::Command.gracefully_kill_all(Einhorn::WorkerPool.workers, args[0] || 'USR2')
       Einhorn::State.respawn = false
 
       "Einhorn is going down! #{response}"
