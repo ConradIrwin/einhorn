@@ -15,11 +15,16 @@ module Einhorn::Event
       Einhorn::Command::Interface.process_command(self, command)
     end
 
+    def subscriptions
+      Stream.subscriptions(self)
+    end
+
     def to_state
       state = {:class => self.class.to_s, :socket => @socket.fileno}
       # Don't include by default because it's not that pretty
       state[:read_buffer] = @read_buffer if @read_buffer.length > 0
       state[:write_buffer] = @write_buffer if @write_buffer.length > 0
+      state[:streams] = subscriptions if subscriptions.length > 0
       state
     end
 
@@ -29,6 +34,11 @@ module Einhorn::Event
       conn = self.open(socket)
       conn.read_buffer = state[:read_buffer] if state[:read_buffer]
       conn.write_buffer = state[:write_buffer] if state[:write_buffer]
+      if state[:streams]
+        state[:streams].each do |name|
+          Stream.subscribe! name, self
+        end
+      end
       conn
     end
 
@@ -38,6 +48,9 @@ module Einhorn::Event
     end
 
     def deregister!
+      subscriptions.each do |name|
+        Stream.unsubscribe! name, self
+      end
       log_info("client disconnected") if Einhorn::TransientState.whatami == :master
       super
     end

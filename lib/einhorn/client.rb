@@ -29,7 +29,7 @@ module Einhorn
       end
     end
 
-    @@responseless_commands = Set.new(['worker:ack'])
+    @@responseless_commands = Set.new(['worker:ack', 'stream:subscribe', 'stream:unsubscribe'])
 
     def self.for_path(path_to_socket)
       socket = UNIXSocket.open(path_to_socket)
@@ -48,6 +48,19 @@ module Einhorn
     def command(command_hash)
       Transport.send_message(@socket, command_hash)
       Transport.receive_message(@socket) if expect_response?(command_hash)
+    end
+
+    def stream(command_hash)
+      command(command_hash)
+      loop do
+        begin
+          message = Transport.receive_message(@socket)
+        rescue EOFError
+          break
+        end
+
+        yield message
+      end
     end
 
     def expect_response?(command_hash)

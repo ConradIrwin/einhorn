@@ -361,6 +361,18 @@ EOF
       "Einhorn is going down! #{response}"
     end
 
+    command 'test', 'Test test test' do |conn, request|
+      {'message' => 'Hello', 'stream' => 'stabilising'}
+    end
+
+    command 'stream:subscribe' do |conn, request|
+      Einhorn::Event::Stream.subscribe! conn, request['args'][0]
+    end
+
+    command 'stream:unsubscribe' do |conn, request|
+      Einhorn::Event::Stream.unsubscribe! conn, request['args'][0]
+    end
+
     def self.validate_args(args)
       return 'No args provided' unless args
       return 'Args must be an array' unless args.kind_of?(Array)

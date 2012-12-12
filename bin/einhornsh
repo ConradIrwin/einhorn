@@ -39,10 +39,14 @@ module Einhorn
 
         if response.kind_of?(Hash)
           puts response['message']
+          stream response['stream'] if response['stream']
         else
           puts "Invalid response type #{response.class}: #{response.inspect}"
         end
       end
+    rescue Interrupt
+      Einhorn::EinhornSH.emit
+      exit(0)
     end
 
     def parse_command(line)
@@ -66,6 +70,17 @@ EOF
         exit(1)
       end
       ehlo if interactive?
+    end
+
+    def stream(name)
+      streamer.stream do |response|
+        puts response['message']
+      end
+    rescue Interrupt
+      Einhorn::EinhornSH.emit
+      exit(0) unless interactive?
+    ensure
+      streamer.close
     end
 
     def ehlo
@@ -120,11 +135,6 @@ with a `-d`, provide the same argument here."
   if ARGV.length > 1
     Einhorn::EinhornSH.emit(optparse, true)
     return 1
-  end
-
-  Signal.trap("INT") do
-    Einhorn::EinhornSH.emit
-    exit(0)
   end
 
   path_to_socket = options[:socket_path]
